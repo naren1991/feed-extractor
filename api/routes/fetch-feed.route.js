@@ -1,9 +1,12 @@
 const express = require('express');
 const router = express.Router();
 
+//Test URL: ?url=http://lorem-rss.herokuapp.com/feed
+
 var FeedParser = require('feedparser');
 var request = require('request'); // for fetching the feed
 
+// TODO: Change from query params
 
 router.get('/', function(req,res) {
   return res.send("Set of services for feeds")
@@ -17,7 +20,7 @@ router.get('/getFeed', function(req, res){
   var options = {};
   var feedparser = new FeedParser([options]);
  
-  req.on('error', function (error) {
+  feedReq.on('error', function (error) {
     // handle any request errors
   });
  
@@ -35,6 +38,8 @@ router.get('/getFeed', function(req, res){
   feedparser.on('error', function (error) {
     // always handle errors
   });
+
+  var feedList = [];
  
   feedparser.on('readable', function () {
     // This is where the action is!
@@ -43,12 +48,21 @@ router.get('/getFeed', function(req, res){
     var item;
   
     while (item = stream.read()) {
-      console.log(item);
-      
+      //console.log(item);
+      feedList.push(item)
     }
   });
 
-  res.send("Fetched")
+  feedparser.on('finish', function(){
+    console.log('Finished')
+    //console.log(feedList);
+    res.send(feedList);
+  })
+
+  feedparser.on('end', function(){
+    console.log('Ended');
+  })
+
 })
 
 module.exports = router;
