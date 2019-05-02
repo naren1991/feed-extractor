@@ -1,0 +1,16 @@
+{
+  "name": "feed-extractor",
+  "version": "1.0.0",
+  "description": "Extract RSS and Atom feeds based on a URL, with functionality to extract historical listings when possible",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Naren Srinivasan",
+  "license": "ISC",
+  "dependencies": {
+    "express": "4.16.4",
+    "feedparser": "2.2.9",
+    "nodemon": "1.19.0"
+  }
+}
