@@ -1,25 +1,36 @@
 const express = require('express');
+
 const router = express.Router();
 
-//Test URL: ?url=http://lorem-rss.herokuapp.com/feed
+const kafka = require('kafka-node');
+const bp = require('body-parser');
+const config = require('../../config/kafka.config.js');
+
+const Producer = kafka.Producer;
+const client = new kafka.KafkaClient(config.kafka_server);
+const producer = new Producer(client);
+//const kafka_topic = config.kafka_topic;
+
+//Test URL: http://lorem-rss.herokuapp.com/feed
 
 var FeedParser = require('feedparser');
 var request = require('request'); // for fetching the feed
-
-// TODO: Change from query params
 
 router.get('/', function(req,res) {
   return res.send("Set of services for feeds")
  })
 
-router.get('/getFeed', function(req, res){
+router.post('/get', function(req, res){
   
   var request = require('request'); // for fetching the feed
  
-  var feedReq = request(req.query.url);
+  var feedReq = request(req.body.url);
   var options = {};
   var feedparser = new FeedParser([options]);
  
+  var kafka_topic = req.body.topic;
+  console.log(kafka_topic);
+
   feedReq.on('error', function (error) {
     // handle any request errors
   });
@@ -39,7 +50,8 @@ router.get('/getFeed', function(req, res){
     // always handle errors
   });
 
-  var feedList = [];
+  //var feedList = [];
+  var feedCount = 0;
  
   feedparser.on('readable', function () {
     // This is where the action is!
@@ -48,15 +60,48 @@ router.get('/getFeed', function(req, res){
     var item;
   
     while (item = stream.read()) {
-      //console.log(item);
-      feedList.push(item)
+      //console.log("item");
+      //feedList.push(item)
+
+      try{
+        let payloads = [
+          {
+            topic: kafka_topic,
+            messages: item,
+            timestamp: Date.now() 
+          }
+        ];
+
+        //console.log(payloads)
+        //producer.on('ready', async function() {
+        let push_status = producer.send(payloads, function(err, data) {
+          if (err) {
+            console.log('[kafka-producer -> '+kafka_topic+']: broker update failed');
+          } else {
+            console.log('[kafka-producer -> '+kafka_topic+']: broker update success');
+          }
+        });
+
+        //TODO: implement count inside the send
+        feedCount++
+        //});
+
+        producer.on('error', function(err) {
+          console.log(err);
+          console.log('[kafka-producer -> '+kafka_topic+']: connection errored');
+          throw err;
+        });
+      }catch(e) {
+        console.log(e);
+      }
     }
   });
 
   feedparser.on('finish', function(){
     console.log('Finished')
     //console.log(feedList);
-    res.send(feedList);
+    res.send(feedCount + " items were fetched from the feed and added to the Kafka topic '" +
+     kafka_topic + "'")
   })
 
   feedparser.on('end', function(){
