@@ -1,3 +1,5 @@
+//TODO: Clean this up and add the functions to a controller
+
 const express = require('express');
 
 const router = express.Router();
